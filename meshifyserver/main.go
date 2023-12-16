@@ -10,8 +10,8 @@ import (
 	"encoding/json"
 	"time"
 	"strings"
-	"strconv"
 	"regexp"
+	"strconv"
 	
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
@@ -210,6 +210,76 @@ func main() {
 		return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 
 	})
+
+	// API to retrieve the data of kubernetes cluster info
+	e.GET("/api/get/cluster", func(c echo.Context) error {
+		homedir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+		// Load the kubeconfig file
+		config, err := clientcmd.LoadFromFile(homedir + "/.kube/config")
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		fmt.Println("Able to read kubeconfig")
+
+		// Get the number of clusters
+		numClusters := len(config.Clusters)
+
+		// Create a slice to store the cluster information
+		clusters := make([]map[string]string, 0)
+
+
+		// Initialize a variable to store the current context
+		var currentContext string
+
+		// Get the current context from the kubeconfig
+		if config.CurrentContext != "" {
+			currentContext = config.CurrentContext
+		}
+
+
+
+		// Loop through the clusters and get their information
+		for clusterName, cluster := range config.Clusters {
+			// Get the cluster server URL
+			serverURL := cluster.Server
+
+			// Get the cluster certificate authority data
+			caData := ""
+			if cluster.CertificateAuthorityData != nil {
+				caData = string(cluster.CertificateAuthorityData)
+			}
+
+				// Check if this is the current context
+				isCurrentContext := false
+				if clusterName == currentContext {
+					isCurrentContext = true
+				}
+
+
+
+			// Add the cluster information to the slice
+			clusters = append(clusters, map[string]string{
+				"name":   clusterName,
+				"server": serverURL,
+				"caData": caData,
+				"isactive":  strconv.FormatBool(isCurrentContext),
+			})
+		}
+
+		data, err := json.Marshal(map[string]interface{}{
+			"numClusters": numClusters,
+			"clusters":    clusters,
+			
+		})
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		c.Response().Header().Set("Content-Type", "application/json")
+		return c.String(http.StatusOK, string(data))
+})
 
 	
 
