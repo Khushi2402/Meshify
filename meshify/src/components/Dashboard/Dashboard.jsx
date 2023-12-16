@@ -6,14 +6,30 @@ import serviceHealth from '../../images/serviceHealth.svg';
 import traffic from '../../images/traffic.svg';
 import security from '../../images/security.svg';
 import observability from '../../images/observability.svg';
-import heart from '../../images/heart.svg';
+import profile from '../../images/Profile.svg';
+import notif from '../../images/notif.svg';
 
 const Dashboard = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedContent, setSelectedContent] = useState(null);
+  const [isServiceMeshesOpen, setIsServiceMeshesOpen] = useState(false);
+  const [isPerformanceOpen, setIsPerformanceOpen] = useState(false);
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
   };
+
+  const toggleServiceMeshes = () => {
+    setIsServiceMeshesOpen(!isServiceMeshesOpen);
+    setIsPerformanceOpen(false);
+    setSelectedContent('Service Meshes');
+  }
+
+  const togglePerformace = () => {
+    setIsPerformanceOpen(!isPerformanceOpen);
+    setIsServiceMeshesOpen(false);
+    setSelectedContent('Performance');
+  }
 
   return (
     <div className="fonts flex flex-col h-screen bg-gray-100">
@@ -22,7 +38,12 @@ const Dashboard = () => {
         <img className="h-8 w-8 mr-2" src={logo} alt="Company Logo" />
         <div>
           <h2 className="company text-2xl text-indigo-700">Meshify</h2>
+
+          
         </div>
+        {setSelectedContent && (
+            <span className='text-sm text-indigo-700 ml-2'>{selectedContent}</span>
+          )}
         {/* Profile Section in Navbar */}
         <div className="ml-auto">
           <div className="relative">
@@ -30,13 +51,14 @@ const Dashboard = () => {
               className="flex items-center focus:outline-none"
               onClick={toggleDropdown}
             >
-              <span className="mr-2">Profile</span>
+              <span className="mr-2"><img src={notif} /></span>
+              <span className=""><img src={profile} /></span>
               <svg
                 className={`h-4 w-4 transition-transform transform ${
                   isDropdownOpen ? 'rotate-180' : ''
                 }`}
                 fill="none"
-                stroke="currentColor"
+                stroke="black"
                 viewBox="0 0 24 24"
                 xmlns="http://www.w3.org/2000/svg"
               >
@@ -50,9 +72,17 @@ const Dashboard = () => {
             </button>
             {/* Dropdown Content */}
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 text-indigo-600 rounded-md shadow-lg">
-                <p className="px-4 py-2">Your Email</p>
+              <div className="absolute right-0 mt-2 text-indigo-600 text-sm rounded-md shadow-lg">
                 <button className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-200">
+                  Profile
+                </button>
+                <button className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-200">
+                  Get Token
+                </button>
+                <button className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-200">
+                  Settings
+                </button>
+                <button className="block w-full text-left px-4 py-2 bg-gray-300 text-gray-800 hover:bg-gray-400">
                   Logout
                 </button>
               </div>
@@ -65,12 +95,15 @@ const Dashboard = () => {
 
       {/* Sidebar */}
       <div className="w-64 bg-slate-200 text-white p-4 h-full">
-        <h2 className="flex bg-indigo-700 p-1 items-center text-sm mb-2 ">
+        <h2 className="flex bg-indigo-700 p-1 items-center text-sm mb-2 "
+        onClick={toggleServiceMeshes}>
           Service Meshes
           <img src={meshes} alt="Meshes" className="ml-auto" />
         </h2>
         
-        <h2 className="flex bg-white text-indigo-700 mx-4 p-1 items-center text-sm mb-1">
+        {isServiceMeshesOpen && (
+          <>
+          <h2 className="flex bg-white text-indigo-700 mx-4 p-1 items-center text-sm mb-1">
           Istio
           <img src={meshes} alt="Meshes" className="ml-auto" />
         </h2>
@@ -84,13 +117,18 @@ const Dashboard = () => {
           Cilium
           <img src={meshes} alt="Meshes" className="ml-auto" />
         </h2>
+          </>
+        )}
 
-        <h2 className="flex bg-indigo-700 p-1 items-center text-sm mb-2">
+        <h2 className="flex bg-indigo-700 p-1 items-center text-sm mb-2"
+        onClick={togglePerformace}>
           Performance
           <img src={performance} className="ml-auto" />
         </h2>
 
-        <h2 className="flex bg-white text-indigo-700 mx-4 p-1 items-center text-sm mb-1">
+        {isPerformanceOpen && (
+          <>
+          <h2 className="flex bg-white text-indigo-700 mx-4 p-1 items-center text-sm mb-1">
           Prometheus
           <img src={meshes} alt="Meshes" className="ml-auto" />
         </h2>
@@ -99,7 +137,9 @@ const Dashboard = () => {
           Grafana
           <img src={meshes} alt="Meshes" className="ml-auto" />
         </h2>
-
+          </>
+        )}
+        
         <h2 className="flex bg-indigo-700 p-1 items-center text-sm mb-4">
           Service health
           <img src={serviceHealth} className="ml-auto" />
