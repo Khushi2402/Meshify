@@ -12,7 +12,7 @@ import (
 	"strings"
 	"regexp"
 	"strconv"
-	
+
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/form3tech-oss/jwt-go"
@@ -22,6 +22,10 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 	"k8s.io/client-go/tools/clientcmd"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+
 )
 
 func getIngressIP() string {
@@ -281,6 +285,309 @@ func main() {
 		return c.String(http.StatusOK, string(data))
 })
 
+		// API to get k8s information from the provided kubeconfig
+		e.GET("/api/kube/info", func(c echo.Context) error {
+			homedir, err := os.UserHomeDir()
+		if err != nil {
+			log.Fatal(err)
+		}
+			config, err := clientcmd.LoadFromFile(homedir + "/.kube/config")
+			if err != nil {
+				return err
+			}
+			restConfig, err := clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
+			if err != nil {
+				return err
+			}
+			clientset, err := kubernetes.NewForConfig(restConfig)
+			if err != nil {
+				return err
+			}
+			ver, err := clientset.Discovery().ServerVersion()
+			if err != nil {
+				return err
+			}
+			svcList, err := clientset.CoreV1().Services("default").List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			podList, err := clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			nodeList, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			nodeNames := []string{}
+			for _, node := range nodeList.Items {
+				nodeNames = append(nodeNames, node.ObjectMeta.Name)
+			}
+			var svcTypes []string
+			for _, svc := range svcList.Items {
+				if svc.Spec.Type != "" {
+					svcTypes = append(svcTypes, string(svc.Spec.Type))
+				}
+			}
+			clusterInfo := map[string]interface{}{
+				"serverVersion": ver,
+				"numNodes":      len(nodeList.Items),
+				"nodeNames":     nodeNames,
+				"pods":          len(podList.Items),
+				"svcTypes":      svcTypes,
+			}
+			data, err := json.Marshal(clusterInfo)
+			if err != nil {
+				return err
+			}
+			c.Response().Header().Set("Content-Type", "application/json")
+			c.Response().WriteHeader(http.StatusOK)
+			c.Response().Write(data)
+			return nil
+		})
+
+		// API to get k8s workloads
+		e.GET("/api/kube/workloads", func(c echo.Context) error {
+			homedir, err := os.UserHomeDir()
+			if err != nil {
+			log.Fatal(err)
+			}
+		config, err := clientcmd.LoadFromFile(homedir + "/.kube/config")
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+
+		restConfig, err := clientcmd.NewDefaultClientConfig(*config, &clientcmd.ConfigOverrides{}).ClientConfig()
+		if err != nil {
+			return err
+		}
+
+		clientset, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			return err
+		}
+
+		ver, err := clientset.Discovery().ServerVersion()
+		if err != nil {
+			return err
+		}
+			nodes, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			numNodes := len(nodes.Items)
+			pods, err := clientset.CoreV1().Pods("default").List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			services, err := clientset.CoreV1().Services("default").List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			podTemplates, err := clientset.CoreV1().PodTemplates("default").List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			replicationControllers, err := clientset.CoreV1().ReplicationControllers("default").List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			deployments, err := clientset.AppsV1().Deployments("default").List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			daemonSets, err := clientset.AppsV1().DaemonSets("default").List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			serviceNames := []string{}
+	
+			services, err = clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				return err
+			}
+			for _, svc := range services.Items {
+				serviceNames = append(serviceNames, svc.ObjectMeta.Name)
+			}
+			clusterInfo := map[string]interface{}{
+				"serverVersion":             ver,
+				"numNodes":                  numNodes,
+				"numPods":                   len(pods.Items),
+				"serviceNames":              serviceNames,
+				"numServices":               len(services.Items),
+				"numPodTemplates":           len(podTemplates.Items),
+				"numReplicationControllers": len(replicationControllers.Items),
+				"numDeployments":            len(deployments.Items),
+				"numDaemonSets":             len(daemonSets.Items),
+				
+			}
+			data, err := json.Marshal(clusterInfo)
+			if err != nil {
+				return err
+			}
+			c.Response().Header().Set("Content-Type", "application/json")
+			c.Response().WriteHeader(http.StatusOK)
+			c.Response().Write(data)
+			return nil
+	
+		})
+
+			// Endpoint to retirve the deployed and map them to the their ip addresses
+	e.GET("/api/adapters", func(c echo.Context) error {
+
+		// Load the Kubernetes configuration from the default location or from a specified file
+		config, err := rest.InClusterConfig()
+		if err != nil {
+			config, err = clientcmd.BuildConfigFromFlags("", os.Getenv("HOME")+"/.kube/config")
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"message": fmt.Sprintf("Failed to load Kubernetes configuration: %v", err),
+				})
+			}
+		}
+	
+		// Create a new Kubernetes clientset using the loaded configuration
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"message": fmt.Sprintf("Failed to create Kubernetes clientset: %v", err),
+			})
+		}
+
+		selectedAdapter := c.QueryParam("adapter")
+	
+		// Get the list of all pods in the default namespace with the "app=adapter" label
+		podList, err := clientset.CoreV1().Pods("istio-system").List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"message": fmt.Sprintf("Failed to get list of pods: %v", err),
+			})
+		}
+	
+		// Create a map of adapter name to IP address
+		adapters := make(map[string]string)
+		for _, pod := range podList.Items {
+			adapters[pod.Name] = pod.Status.PodIP
+		}
+
+			// If the "adapter" query parameter is specified, return only that adapter
+			if selectedAdapter != "" {
+				ip, exists := adapters[selectedAdapter]
+				if !exists {
+					return c.JSON(http.StatusNotFound, map[string]string{
+						"message": fmt.Sprintf("Adapter not found: %s", selectedAdapter),
+					})
+				}
+				adapters = map[string]string{selectedAdapter: ip}
+			}
+	
+		return c.JSON(http.StatusOK, adapters)
+})
+
+		// Deploying bookinfo.yaml application in default namespace
+		e.POST("/api/deploy/bookinfo", func(c echo.Context) error {
+	
+			// Execute the kubectl command to apply the Bookinfo YAML
+			deployCmd := exec.Command("kubectl", "apply", "-f", "/Users/yashsharma/istio-1.17.2/samples/bookinfo/platform/kube/bookinfo.yaml")
+			deployCmd.Stdout = os.Stdout
+			deployCmd.Stderr = os.Stderr
+			err := deployCmd.Run()
+			if err != nil {
+				log.Printf("Failed to deploy Bookinfo application: %s", err.Error())
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"message": "Failed to deploy Bookinfo application",
+				})
+			}
+			
+				// Execute the kubectl command to retrieve the title of the product page
+				titleCmd := exec.Command("bash", "-c", "kubectl exec $(kubectl get pod -l app=ratings -o jsonpath='{.items[0].metadata.name}') -c ratings -- curl -sS productpage:9080/productpage | grep -o '<title>.*</title>'")
+				output, err := titleCmd.CombinedOutput()
+				if err != nil {
+					log.Printf("Failed to retrieve product page title: %s", err.Error())
+					return c.JSON(http.StatusInternalServerError, map[string]string{
+						"message": "Failed to retrieve product page title, Wait for the application to be deployed",
+					})
+				}
+	
+				title := extractTitle(string(output))
+				if title == "" {
+					log.Println("Failed to extract product page title")
+					return c.JSON(http.StatusInternalServerError, map[string]string{
+						"message": "Failed to extract product page title",
+					})
+				}
+
+			ip := getIngressIP()
+			if ip == "" {
+				log.Println("Make sure your cluster has an Ingress controller running and  it has an external IP address")
+				return c.JSON(http.StatusInternalServerError, map[string]string{
+					"message": "make sure your cluster has an Ingress controller running and  it has an external IP address",
+				})
+				}	
+		
+			log.Printf("Bookinfo application deployed successfully. Ingress IP: %s", ip)
+			return c.JSON(http.StatusOK, map[string]string{
+				"title": title,
+				"message":    "Bookinfo application deployed successfully",
+				"ingress_ip": ip,
+	
+			})
+		})
+
+								//  Metrics and monitoring
+
+		e.GET("/api/prometheusgrafana/health/status", func(c echo.Context) error {
+		// Check Prometheus status
+		prometheusIP := runKubectlCommand("get", "services", "-n", "istio-system", "-l", "app=prometheus", "-o", "jsonpath='{.items[*].spec.clusterIP}'")
+
+		prometheus := ServiceStatus{
+			Name:    "Prometheus",
+			Address: strings.Trim(prometheusIP, "'"),
+		}
+
+		// Check Grafana status
+		grafanaIP := runKubectlCommand("get", "services", "-n", "istio-system", "-l", "app=grafana", "-o", "jsonpath='{.items[*].spec.clusterIP}'")
+
+		grafana := ServiceStatus{
+			Name:    "Grafana",
+			Address: strings.Trim(grafanaIP, "'"),
+		}
+
+		status := []ServiceStatus{prometheus, grafana}
+
+		return c.JSON(http.StatusOK, status)
+	})
+
+	e.HTTPErrorHandler = func(err error, c echo.Context) {
+		if he, ok := err.(*echo.HTTPError); ok {
+			if he.Code == http.StatusNotFound {
+				log.Println("Error 404: Not Found")
+			}
+		}
+		c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+
+	e.GET("/api/dashboard/prometheus", func(c echo.Context) error {
+		// Execute the 'istioctl dashboard prometheus' command
+		cmd := exec.Command("istioctl", "dashboard", "prometheus")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	
+		err := cmd.Run()
+		if err != nil {
+			log.Println(err)
+			return c.String(http.StatusInternalServerError, "Error executing command")
+		}
+	
+		// Check the command's exit status code
+		if cmd.ProcessState.ExitCode() == 0 {
+			// If the exit status is 0 (success), return the URL and open it in a new tab
+			return c.Redirect(http.StatusOK, "http://localhost:9090")
+		}
+	
+		return c.String(http.StatusInternalServerError, "Command executed, but encountered an error")
+	})
 	
 
 	if err := e.Start(":8080"); err != nil {
