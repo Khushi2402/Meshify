@@ -20,7 +20,7 @@ code {
 
 .company {
   font-family: 'Poppins';
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .headings {
@@ -31,4 +31,8 @@ code {
 .buttons {
   font-family: 'Poppins';
   font-weight: 400;
+}
+
+.fonts {
+  font-family: 'Poppins';
 }

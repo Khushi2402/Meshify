@@ -13,7 +13,7 @@ export default function Example() {
               alt="Your Company"
             />
 
-            <h1 className="company text-2xl text-indigo-500">MESHIFY</h1>
+            <h1 className="company text-2xl text-indigo-600">MESHIFY</h1>
           </span>
 
           <h2 className="headings mt-10 text-center text-xl font-bold leading-9 tracking-tight text-gray-900">
