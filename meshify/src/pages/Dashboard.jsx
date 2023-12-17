@@ -82,10 +82,10 @@ export default function Dashboard() {
   return (
     <>
       <Header />
-      <div className="flex">
-        <NavigationDrawer />
+      <div className="inline-flex">
+      <NavigationDrawer className=""/>
 
-        <div className="float-right flex-1 inline-flex ml-4">
+        <div className="float-right inline-flex ml-4">
           <div className="bg-white shadow-md mx-4 my-8 px-4 py-3 rounded-md w-[700px]">
             {loading && (
               <div className="fixed bottom-12 right-9">
@@ -95,22 +95,80 @@ export default function Dashboard() {
             <h3 className="text-xl font-medium mb-2">Kubernetes Workloads</h3>
             <div className="overflow-y-auto max-h-100 mt-10">
               <ul className="border border-gray-300 rounded-md p-4 ">
-                {/* ... (existing code for Kubernetes Workloads) */}
+              <li className="flex flex-col space-y-2">
+        <p className="font-medium text-gray-600">Number of Daemons:</p>
+        <p className="text-lg font-bold">{workloads.numDaemonSets}</p>
+      </li>
+      <li className="flex flex-col space-y-2">
+        <p className="font-medium text-gray-600">Number of Deployments:</p>
+        <p className="text-lg font-bold">{workloads.numDeployments}</p>
+      </li>
+      <li className="flex flex-col space-y-2">
+        <p className="font-medium text-gray-600">Number of Nodes:</p>
+        <p className="text-lg font-bold">{workloads.numNodes}</p>
+      </li>
+      <li className="flex flex-col space-y-2">
+        <p className="font-medium text-gray-600">Number of Pod Templates:</p>
+        <p className="text-lg font-bold">{workloads.numPodTemplates}</p>
+      </li>
+      <li className="flex flex-col space-y-2">
+        <p className="font-medium text-gray-600">Number of Replication Controllers:</p>
+        <p className="text-lg font-bold">{workloads.numReplicationControllers}</p>
+      </li>
+      <li className="flex flex-col space-y-2">
+        <p className="font-medium text-gray-600">Number of Pods:</p>
+        <p className="text-lg font-bold">{workloads.numPods}</p>
+      </li>
+      <li className="flex flex-col space-y-2">
+        <p className="font-medium text-gray-600">Number of Services:</p>
+        <p className="text-lg font-bold">{workloads.numServices}</p>
+      </li>  
               </ul>
             </div>
           </div>
 
           <div className="flex flex-col w-3/4 p-4 space-y-4 mt-7">
             <div className="bg-white shadow-md mx-2 p-4 h-[130px] w-[400px]">
-              {/* ... (existing code for Connection Status) */}
+            <h3 className="text-xl font-medium mb-2">Connection Status</h3>
+        <div>
+        <div>
+        {clusters.map(cluster => (
+          <div 
+            key={cluster.name} 
+            className={`flex items-center ${cluster.isactive === "true" ? 'text-blue-500' : 'text-gray-500'}`}
+          >
+            <span className="h-2 w-2 mr-2 rounded-full bg-current"></span>
+            <h2>{cluster.name}</h2>
+          </div>
+        ))}
+    </div>
+
+
+    </div>
             </div>
 
             <div className="bg-white shadow-md mx-2 p-4 h-[250px] w-[400px]">
-              {/* ... (existing code for Service mesh adapters) */}
+            <h3 className="text-xl font-medium mb-2">Service mesh adapters</h3>
+        <div className="mt-6">
+        <ul className="border border-gray-300 rounded-md p-2 overflow-y-auto max-h-[160px]">
+          {workloads.serviceNames &&
+            workloads.serviceNames.map((serviceName, index) => (
+              <li key={index} className="text-lg">{serviceName}</li>
+            ))}
+        </ul>
+      </div>
             </div>
 
             <div className="bg-white shadow-md mx-2 p-4 h-[170px] w-[400px]">
-              {/* ... (existing code for Performance Graph) */}
+            <h3 className="text-xl font-medium mb-2 ">Performance Graph</h3>
+        <div className="bg-white rounded-md p-1 flex items-center justify-between mb-2">
+        <span className="text-gray-600 mt-2">Prometheus</span>
+        <FaPlus className="text-gray-400 text-sm mt-10" />
+        </div>
+        <div className="bg-white rounded-md p-1 flex items-center justify-between">
+        <span className="text-gray-600">Grafana</span>
+        <FaPlus className="text-gray-400 text-sm" />
+        </div>
             </div>
           </div>
         </div>
