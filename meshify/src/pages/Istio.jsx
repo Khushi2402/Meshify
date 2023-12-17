@@ -192,7 +192,7 @@ export default function Istio() {
                 Deploy
               </button>
 
-              <button className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md" onClick={handleCancelClick} >
+              <button className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md">
                 Cancel
               </button>
             </div>
@@ -205,7 +205,7 @@ export default function Istio() {
         <div className="p-4">
           <h4 className="font-bold text-xl mb-2">Manage sample application for service mesh</h4>
           <p className="text-gray-700 text-base">managing service mesh is crucial for organizations that are adopting microservices architecture. It helps to improve application performance, scalability, and security, while also simplifying the management of microservices. </p>
-          <FaPlus className="mt-4 text-xl float-left mb-4"/>
+          <FaPlus className="mt-4 text-xl float-left mb-4 " onClick={handleBookinfoClick}/>
         </div>
       </div>
     </div>
